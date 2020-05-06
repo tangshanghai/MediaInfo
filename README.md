@@ -1,15 +1,41 @@
-# colorPickerTSH
-简易取色组件
+# MediaInfo
+媒体分析JS版
+
+导入方式
+```
+    <script src="MediaInfo.js"></script>  || import MediaInfo from 'MeidaInfo.js'
+```
 
 用法
 ```
-<input type="text" value="#00ff00" id="inputText"/>
+<input type="file" id="testInput" accept="*.png,*.jpg,*.gif,*.bmp,*.mp3,*.wav,*.m4a,*.mp4"/>
+
 <script>
-    var colorpicker = new ColorPickerTSH("#inputText",onChange);
-    function onChange(color){
-        console.log(color);
-        //colorpicker.setColor(color.hex,color.alpha)
+    let mediaInfo = new MediaInfo();
+    let inputfile = document.getElementById('testInput');
+    inputfile.addEventListener('change',selectSourceBack);
+
+    /** 文件选择完成返回 */
+    function selectSourceBack (event) {
+        let files = event.target.files;
+        let file = files[0];
+        console.log(file)
+
+        inputfile.value = '';
+
+        let reader = new FileReader();
+        reader.onload = function(result) {
+            let info = mediaInfo.getInfo(reader.result);
+            if(!info.info){
+                console.log('重试强类型')
+                let arr = file.name.split('.');
+                let typeName = arr[arr.length-1];
+                info = mediaInfo.getInfo(reader.result,typeName);
+            }
+            console.log('fileInfo',info);
+            
+        }
+        reader.readAsArrayBuffer(file);
     }
-    colorpicker.setColor("#00ff00",0.1);
 </script>
 ```# MediaInfo
