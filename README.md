@@ -26,16 +26,10 @@
         let reader = new FileReader();
         reader.onload = function(result) {
             let info = mediaInfo.getInfo(reader.result);
-            if(!info.info){
-                console.log('重试强类型')
-                let arr = file.name.split('.');
-                let typeName = arr[arr.length-1];
-                info = mediaInfo.getInfo(reader.result,typeName);
-            }
             console.log('fileInfo',info);
             
         }
         reader.readAsArrayBuffer(file);
     }
 </script>
-```# MediaInfo
+```
