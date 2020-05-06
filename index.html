@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>媒体分析库</title>
+    <style>
+    </style>
+</head>
+<body>
+    <input type="file" id="testInput" accept="*.png,*.jpg,*.gif,*.bmp,*.mp3,*.wav,*.m4a,*.mp4"/>
+
+</body>
+
+<script>
+    let mediaInfo = new MediaInfo();
+    let inputfile = document.getElementById('testInput');
+    inputfile.addEventListener('change',selectSourceBack);
+
+    /** 文件选择完成返回 */
+    function selectSourceBack (event) {
+        let files = event.target.files;
+        // console.log(files[0])
+        let file = files[0];
+        console.log(file)
+
+        inputfile.value = '';
+
+        let reader = new FileReader();
+        console.time('reader')
+        reader.onload = function(result) {
+            let info = mediaInfo.getInfo(reader.result);
+            if(!info.info){
+                console.log('重试强类型')
+                let arr = file.name.split('.');
+                let typeName = arr[arr.length-1];
+                info = mediaInfo.getInfo(reader.result,typeName);
+            }
+            console.timeEnd('reader')
+            console.log('htmlbody',info);
+            
+        }
+        reader.readAsArrayBuffer(file);
+    }
+</script>
+</html>
