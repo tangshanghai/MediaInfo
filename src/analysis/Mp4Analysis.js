@@ -28,23 +28,31 @@ class Mp4Analysis{
         for(let i=0;i<moovStruct.length;i++){
             let item = moovStruct[i];
             if(item.boxType == 'mvhd'){
-                info.creation_time = item.info.creation_time*1000+ms1904;
-                info.modification_time = item.info.modification_time*1000+ms1904;
+                info.creation_time = Math.max(0,item.info.creation_time*1000+ms1904);
+                info.modification_time = Math.max(0,item.info.modification_time*1000+ms1904);
                 info.duration = item.info.duration/item.info.time_scale;
             }else if(item.boxType == 'trak'){
                 if(item.track_type == 'vide'){
+                    let sample_count = item.stts.sample_count;
+                    if(sample_count <= 1 && item.stsz.sample_count>1){
+                        sample_count = item.stsz.sample_count;
+                    }
                     info.width = item.stsd.width;
                     info.height = item.stsd.height;
                     info.video_format = item.stsd.format;
-                    info.video_frames = item.stts.sample_count;
+                    info.video_frames = sample_count;
                     info.fps = item.mdhd.time_scale/item.stts.sample_duration;
-                    info.video_duration = item.stts.sample_count*item.stts.sample_duration/item.mdhd.time_scale;
+                    info.video_duration = sample_count*item.stts.sample_duration/item.mdhd.time_scale;
                     info.bit_rate = item.stsz.file_size*8/info.video_duration/1000;
                     info.bit_depth = item.stsd.bit_depth;
                 }else if(item.track_type == 'soun'){
+                    let sample_count = item.stts.sample_count;
+                    if(sample_count <= 1 && item.stsz.sample_count>1){
+                        sample_count = item.stsz.sample_count;
+                    }
                     info.audio_format = item.stsd.format;
-                    info.audio_frames = item.stts.sample_count;
-                    info.audio_duration = item.stts.sample_count*item.stts.sample_duration/item.stsd.smplrate;
+                    info.audio_frames = sample_count;
+                    info.audio_duration = sample_count*item.stts.sample_duration/item.stsd.smplrate;
                     info.audio_smplrate = item.stsd.smplrate;
                     info.audio_channel = item.stsd.channel;
                     info.audio_bit_rate = item.stsz.file_size*8/info.audio_duration/1000;
@@ -378,6 +386,7 @@ class Mp4Analysis{
             tempPos += 4;
         }
         info.file_size = all_size_byte;
+        info.sample_count = sample_count;
         return info;
     }
     decode_stsz_audio(recordBox,dataView,minor_version){
@@ -391,6 +400,7 @@ class Mp4Analysis{
             tempPos += 4;
         }
         info.file_size = all_size_byte;
+        info.sample_count = sample_count;
         return info;
     }
 }
