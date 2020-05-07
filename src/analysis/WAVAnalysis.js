@@ -38,7 +38,7 @@ class WAVAnalysis{
         info.sampling_rate = sampling_rate;
         info.bit_depth = bit_depth;
         info.duration = wavByte/transfer_rate;
-        info.kbps = transfer_rate*8/1000;
+        info.bitrate = transfer_rate*8/1000;
         return info;
     }
 

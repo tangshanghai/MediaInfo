@@ -67,7 +67,7 @@ class MP3Analysis{
         let duration = Math.floor((dataView.byteLength - 128)/frameLen) * f_duration;
         return {
             channel:frameHeader.channel,
-            kbps:frameHeader.kbps,
+            bitrate:frameHeader.kbps,
             samplingrate: frameHeader.samplingrate,
             duration: duration,
         }

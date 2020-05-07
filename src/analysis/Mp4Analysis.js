@@ -23,27 +23,31 @@ class Mp4Analysis{
         date.setHours(0,0,0,0);
         const ms1904 = date.getTime();
         const moovStruct = this.getMoovData(moovBox,dataView,minor_version);
-        let time_scale = 0;
+        // let time_scale = 0;
+        // console.log(moovStruct)
         for(let i=0;i<moovStruct.length;i++){
             let item = moovStruct[i];
             if(item.boxType == 'mvhd'){
                 info.creation_time = item.info.creation_time*1000+ms1904;
                 info.modification_time = item.info.modification_time*1000+ms1904;
                 info.duration = item.info.duration/item.info.time_scale;
-                time_scale = item.info.time_scale;
             }else if(item.boxType == 'trak'){
                 if(item.track_type == 'vide'){
                     info.width = item.stsd.width;
                     info.height = item.stsd.height;
                     info.video_format = item.stsd.format;
                     info.video_frames = item.stts.sample_count;
-                    info.fps = time_scale/item.stts.sample_duration;
-                    info.video_duration = item.stts.sample_count*item.stts.sample_duration/time_scale;
+                    info.fps = item.mdhd.time_scale/item.stts.sample_duration;
+                    info.video_duration = item.stts.sample_count*item.stts.sample_duration/item.mdhd.time_scale;
+                    info.bit_rate = item.stsz.file_size*8/info.video_duration/1000;
+                    info.bit_depth = item.stsd.bit_depth;
                 }else if(item.track_type == 'soun'){
                     info.audio_format = item.stsd.format;
                     info.audio_frames = item.stts.sample_count;
                     info.audio_duration = item.stts.sample_count*item.stts.sample_duration/item.stsd.smplrate;
                     info.audio_smplrate = item.stsd.smplrate;
+                    info.audio_channel = item.stsd.channel;
+                    info.audio_bit_rate = item.stsz.file_size*8/info.audio_duration/1000;
                 }
             }
         }
@@ -105,6 +109,7 @@ class Mp4Analysis{
                             let mdia_item = mdiaStruct[m];
                             if(mdia_item.boxType == 'mdhd'){
                                 mdia_item.info = this.decode_mdhd(mdia_item,dataView,minor_version);
+                                item.mdhd = mdia_item.info;
                             }else if(mdia_item.boxType == 'hdlr'){
                                 mdia_item.info = this.decode_hdlr(mdia_item,dataView,minor_version);
                                 trak_item.track_type = mdia_item.info.handler_type;
@@ -139,6 +144,13 @@ class Mp4Analysis{
                                                     stbl_item.info = this.decode_stts_audio(stbl_item,dataView,minor_version);
                                                 }
                                                 item.stts = stbl_item.info;
+                                            }else if(stbl_item.boxType == 'stsz'){
+                                                if(trak_item.track_type == 'vide'){
+                                                    stbl_item.info = this.decode_stsz_video(stbl_item,dataView,minor_version);
+                                                }else if(trak_item.track_type == 'soun'){
+                                                    stbl_item.info = this.decode_stsz_audio(stbl_item,dataView,minor_version);
+                                                }
+                                                item.stsz = stbl_item.info;
                                             }
                                         }
 
@@ -263,6 +275,7 @@ class Mp4Analysis{
     decode_stsd_video(recordBox,dataView,minor_version){
         const info = {};
         let tempPos = recordBox.boxPosStart+8;
+        // console.log('atomLen',dataView.getUint32(tempPos-8))
         info.version = dataView.getUint8(tempPos);
         info.flags = dataView.getUint8(tempPos+3);
         tempPos+=4;
@@ -274,6 +287,40 @@ class Mp4Analysis{
         tempPos+=28;
         info.width = dataView.getUint16(tempPos);
         info.height = dataView.getUint16(tempPos+2);
+        tempPos += 4;
+        info.horizresolution = dataView.getUint32(tempPos);
+        info.vertresolution  = dataView.getUint32(tempPos+4);
+        tempPos += 8;
+        info.reserved = dataView.getUint32(tempPos);
+        tempPos += 4;
+        info.frames_count = dataView.getUint16(tempPos);
+        tempPos += 2;
+        tempPos += 32;
+        info.bit_depth = dataView.getUint16(tempPos);
+        tempPos += 2;
+        //pre_defined
+        // tempPos += 2;
+        // let avcC_size = dataView.getUint32(tempPos);
+        // tempPos += 4;
+        // let avcC_boxName = this.getASCII(dataView.buffer.slice(tempPos,tempPos+4));
+        // tempPos += 4;
+        // let avc_version = dataView.getUint8(tempPos);
+        // let avcProfileIndication = dataView.getUint8(tempPos+1);
+        // let profile_compatibility = dataView.getUint8(tempPos+2);
+        // let avcLevelIndication = dataView.getUint8(tempPos+3);
+        // let NALU_len = dataView.getUint8(tempPos+4);
+        // let SPS_number = dataView.getUint8(tempPos+5);
+        // tempPos += 6;
+        // let SPS_len = dataView.getUint16(tempPos);
+        // tempPos += 2;
+        // console.log(dataView.buffer.slice(tempPos,tempPos+SPS_len))
+        // tempPos += SPS_len;
+        // let PPS_number = dataView.getUint8(tempPos);
+        // tempPos += 1;
+        // let PPS_len = dataView.getUint16(tempPos);
+        // tempPos += 2;
+        // console.log(dataView.buffer.slice(tempPos,tempPos+PPS_len))
+        // console.log(info,avcC_boxName)
         return info;
     }
     decode_stsd_audio(recordBox,dataView,minor_version){
@@ -318,6 +365,32 @@ class Mp4Analysis{
         info.sample_count = dataView.getUint32(tempPos);
         tempPos+=4;
         info.sample_duration = dataView.getUint32(tempPos);
+        return info;
+    }
+    decode_stsz_video(recordBox,dataView,minor_version){
+        const info = {};
+        let tempPos = recordBox.boxPosStart;
+        let sample_count = dataView.getInt32(tempPos+16);
+        tempPos += 20;
+        let all_size_byte = 0;
+        for(let i=0;i<sample_count;i++){
+            all_size_byte += dataView.getInt32(tempPos);
+            tempPos += 4;
+        }
+        info.file_size = all_size_byte;
+        return info;
+    }
+    decode_stsz_audio(recordBox,dataView,minor_version){
+        const info = {};
+        let tempPos = recordBox.boxPosStart;
+        let sample_count = dataView.getInt32(tempPos+16);
+        tempPos += 20;
+        let all_size_byte = 0;
+        for(let i=0;i<sample_count;i++){
+            all_size_byte += dataView.getInt32(tempPos);
+            tempPos += 4;
+        }
+        info.file_size = all_size_byte;
         return info;
     }
 }
