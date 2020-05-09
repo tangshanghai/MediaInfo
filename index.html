@@ -6,16 +6,28 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>媒体分析库</title>
     <style>
+        .info-box ul{
+            list-style: none;
+        }
+        .info-box li{
+            display: flex;
+        }
+        .info-box li label{
+            width: 150px;
+        }
     </style>
 </head>
 <body>
     <input type="file" id="testInput" accept="*.png,*.jpg,*.gif,*.bmp,*.mp3,*.wav,*.m4a,*.mp4"/>
+    <ul class="info-box">
 
+    </ul>
 </body>
 
 <script>
     let mediaInfo = new MediaInfo();
     let inputfile = document.getElementById('testInput');
+    let infoBox = document.querySelector('.info-box');
     inputfile.addEventListener('change',selectSourceBack);
 
     /** 文件选择完成返回 */
@@ -28,8 +40,10 @@
         inputfile.value = '';
 
         let reader = new FileReader();
-        console.time('reader')
+        console.time('loadfile');
         reader.onload = function(result) {
+            console.timeEnd('loadfile');
+            console.time('analysisfile');
             let info = mediaInfo.getInfo(reader.result);
             if(!info.info){
                 console.log('重试强类型')
@@ -37,9 +51,13 @@
                 let typeName = arr[arr.length-1];
                 info = mediaInfo.getInfo(reader.result,typeName);
             }
-            console.timeEnd('reader')
-            console.log('htmlbody',info);
-            
+            console.timeEnd('analysisfile');
+            // console.log('htmlbody',info);
+            let str = '';
+            for(let label in info.info){
+                str += '<li><label>'+label+':</label><span>'+info.info[label]+'</span></li>';
+            }
+            infoBox.innerHTML = str;
         }
         reader.readAsArrayBuffer(file);
     }
