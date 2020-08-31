@@ -64,6 +64,7 @@ class Mp4Analysis{
     }
 
     getMp4Struct(mp4Struct,dataView,positon,side){
+        if(positon<0) return;
         let boxLen = dataView.getInt32(positon);
         // let buffer = dataView.buffer.slice(positon+4,positon+8);
         let boxName = this.getASCII(dataView.buffer.slice(positon+4,positon+8));
