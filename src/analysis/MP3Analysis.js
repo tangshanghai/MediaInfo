@@ -65,6 +65,10 @@ class MP3Analysis{
         }
         let f_duration = frameSize / frameHeader.samplingrate;
         let duration = Math.floor((dataView.byteLength - 128)/frameLen) * f_duration;
+        // console.log('f_duration',f_duration,dataView.byteLength,frameLen)
+        if(duration == 0 && frameHeader.kbps == 8000 && frameHeader.channel == 1){
+            duration = dataView.byteLength/1000;
+        }
         return {
             channel:frameHeader.channel,
             bitrate:frameHeader.kbps,
@@ -189,7 +193,7 @@ class MP3Analysis{
 
     getKbps(str,code_v,layer){
         const tempkbps = kbps_table[str];
-        let kbps = 0;
+        let kbps = 8000;
         if(code_v == 'MPEG1'){
             if(layer == 'LayerI'){
                 kbps = tempkbps[0];
